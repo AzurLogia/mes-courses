@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mes courses</title>
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="Une liste de courses simple, rapide et hors connexion.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#171717;background:#f6f6f6}*{box-sizing:border-box}body{margin:0}main{max-width:680px;margin:auto;padding:18px 14px 90px}h1{font-size:30px;margin:8px 0 16px}.card{background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 14px #0000000c;margin-bottom:12px}button,input,textarea{font:inherit}button{border:0;border-radius:14px;padding:13px 15px;font-weight:700;cursor:pointer}.primary{background:#171717;color:white;width:100%;font-size:17px}.secondary{background:#e9e9e9}.danger{background:#f1dddd}.row{display:flex;gap:8px}.row input{flex:1;border:1px solid #ddd;border-radius:14px;padding:13px}.row button{white-space:nowrap}textarea{width:100%;min-height:155px;border:1px solid #ddd;border-radius:14px;padding:12px;resize:vertical;margin:10px 0}.hint{font-size:13px;color:#666;margin:8px 2px}.section{margin:18px 3px 7px;font-size:15px;color:#555;font-weight:800}.item{display:flex;align-items:center;gap:12px;background:#fff;border-radius:15px;padding:13px 12px;margin:7px 0;box-shadow:0 1px 8px #0000000a}.item input{width:24px;height:24px;flex:none}.item .txt{flex:1;font-size:17px}.item.done .txt{text-decoration:line-through;color:#888}.del{background:transparent;padding:6px;font-size:18px}.actions{display:flex;gap:8px;margin-top:14px}.actions button{flex:1}.empty{text-align:center;color:#777;padding:30px 10px}.badge{font-size:12px;background:#eee;padding:4px 8px;border-radius:999px;color:#555}.top{display:flex;align-items:center;justify-content:space-between}.count{font-size:14px;color:#666}
+</style>
+</head><body><main>
+<div class="top"><h1>🛒 Mes courses</h1><span class="count" id="count"></span></div>
+<div class="card">
+<button class="primary" id="paste">📋 Coller ma liste</button>
+<div id="importBox" hidden>
+<textarea id="bulk" placeholder="Colle ici une liste, par exemple :\nLait\n2 paquets de lardons\nPâtes\n6 œufs"></textarea>
+<div class="row"><button class="primary" id="import">Ajouter à la liste</button><button class="secondary" id="cancel">Annuler</button></div>
+</div>
+<p class="hint">Tu peux coller une liste avec un article par ligne, ou séparée par des virgules.</p>
+<div class="row"><input id="single" placeholder="Ajouter un article…" autocomplete="off"><button class="secondary" id="add">Ajouter</button></div>
+</div>
+<div id="list"></div>
+<div class="actions"><button class="secondary" id="clearDone">Retirer les cochés</button><button class="danger" id="newList">Nouvelle liste</button></div>
+</main>
+<script>
+const KEY='mes-courses-v1';let items=[];try{items=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
+const $=s=>document.querySelector(s),list=$('#list');
+function save(){localStorage.setItem(KEY,JSON.stringify(items));render()}
+function parse(t){return t.split(/\n|,|;|•|\u2022/g).map(x=>x.replace(/^[-–—*✓☐□]+\s*/, '').trim()).filter(Boolean)}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){list.innerHTML='';let open=items.filter(x=>!x.done),done=items.filter(x=>x.done);$('#count').textContent=open.length?open.length+' restant'+(open.length>1?'s':''):'';if(!items.length){list.innerHTML='<div class="empty">Ta liste est vide.</div>';return} if(open.length) addSection('À acheter',open);if(done.length)addSection('Dans le panier',done)}
+function addSection(title,arr){let h=document.createElement('div');h.className='section';h.textContent=title;list.appendChild(h);arr.forEach(it=>{let d=document.createElement('div');d.className='item'+(it.done?' done':'');d.innerHTML=`<input type="checkbox" ${it.done?'checked':''}><div class="txt">${esc(it.text)}</div><button class="del" aria-label="Supprimer">✕</button>`;d.querySelector('input').onchange=e=>{it.done=e.target.checked;save()};d.querySelector('.del').onclick=()=>{items=items.filter(x=>x.id!==it.id);save()};list.appendChild(d)})}
+function addTexts(a){a.forEach(text=>items.push({id:Date.now()+Math.random(),text,done:false}));save()}
+$('#add').onclick=()=>{let v=$('#single').value.trim();if(v){addTexts([v]);$('#single').value='';$('#single').focus()}};$('#single').onkeydown=e=>{if(e.key==='Enter')$('#add').click()};
+$('#paste').onclick=async()=>{let box=$('#importBox');box.hidden=false;$('#bulk').focus();try{let t=await navigator.clipboard.readText();if(t)$('#bulk').value=t}catch(e){}}
+$('#cancel').onclick=()=>{$('#importBox').hidden=true};$('#import').onclick=()=>{let a=parse($('#bulk').value);if(a.length){addTexts(a);$('#bulk').value='';$('#importBox').hidden=true}};
+$('#clearDone').onclick=()=>{items=items.filter(x=>!x.done);save()};$('#newList').onclick=()=>{if(confirm('Effacer toute la liste et en commencer une nouvelle ?')){items=[];save()}};render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
+</script></body></html>
+
